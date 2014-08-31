@@ -63,7 +63,9 @@ class BruteForceResolver(override val puzzle: Puzzle, override val blocks: Set[B
   }
   def selectRotatedBlock(position: Position) = 
     blocks.find { block => 
-      puzzle.canPutBlock(block.rotated, position) && resTree.canMakeMove(block, true)
+      puzzle.canPutBlock(block.rotated, position) && 
+      resTree.canMakeMove(block, true) &&
+      block.shouldTryToRotate
   }
 
   def rollback() = {
