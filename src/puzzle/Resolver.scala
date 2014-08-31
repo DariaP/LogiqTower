@@ -1,39 +1,60 @@
 package puzzle
 
 import scala.collection.mutable.Set
-abstract class Resolver(val puzzle: Puzzle, val blocks: Set[Block]) {
 
-  def selectBlock(position: Position): Option[Block]
+case class BlockMove(val block: Block, val rotated: Boolean) {
+  def inCurrentPosition = { if (rotated) block.rotated else block }
+  override def toString = block + { if (rotated) " rotated" else ""}
+}
 
+trait Logger {
+  def log(message: String) {}
+}
+abstract class Resolver(val puzzle: Puzzle, val blocks: Set[Block]) extends Logger{
+
+  def selectBlock(position: Position): Option[BlockMove]
+  def onBlockFound(blockMove: BlockMove, position: Position): Boolean
+  def onBlockNotFound(position: Position): Boolean
+  def onResolved(): Boolean
+  def onFailure(): Boolean
+  
   def fill(position: Position) = {
     if (blocks.isEmpty) {
-      println("failure: no more blocks")
-      false
+      log("failure: no more blocks")
+      onBlockNotFound(position)
     } else {
       selectBlock(position) match {
         case None => {
-          println("failure: can't find block for position " + position)
-          false     
+          log("failure: can't find block for position " + position)
+          onBlockNotFound(position)  
         }
-        case Some(block) => {
-          puzzle.put(block, position)
-          println("block " + block + " at position " + position)
-          blocks.remove(block)
+        case Some(blockMove) => {
+          log("block found " + blockMove.inCurrentPosition + " for position " + position)
+          puzzle.put(
+            blockMove.inCurrentPosition , 
+            position)
+          blocks.remove(blockMove.block)
+          onBlockFound(blockMove, position)
         }
       }
     }
   }
+
   def resolve() {
     var continue = true
     while (continue) {
       puzzle.getNextEmptyPosition match {
         case None => {
-          if (puzzle.done) println("success")
-          else println("failure: emply center")
-          continue = false
+          if (puzzle.done) {
+            log("success")
+            continue = onResolved()
+          } else {
+            log("failure: emply center")
+            continue = onFailure()
+          }
         }
         case Some(position) => {
-          if (!fill(position)) continue = false
+          continue = fill(position)
         }
       }
     }

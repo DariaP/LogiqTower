@@ -3,13 +3,6 @@ package puzzle
 
 import scala.collection.mutable.Set
 
-class BlockMove(val block: Block, val rotated: Boolean) {
-  override def toString = block + { if (rotated) " rotated" else ""}
-}
-object BlockMove {
-  def apply(block: Block, rotated: Boolean) = new BlockMove(block, rotated)
-}
-
 case class Move (val blockMove: BlockMove, val position: Position) {
   override def toString = 
     "Move block " + blockMove + 
@@ -54,87 +47,48 @@ class ResTree {
   }
 }
 
-class BruteForceResolver(override val puzzle: Puzzle, override val blocks: Set[Block]) extends Resolver(puzzle, blocks){
+class BruteForceResolver(
+    override val puzzle: Puzzle, 
+    override val blocks: Set[Block],
+    val findAll: Boolean = true) extends Resolver(puzzle, blocks){
   val resTree = new ResTree()
 
-  def selectBlock(position: Position) = 
+  private def selectNotRotatedBlock(position: Position) = 
     blocks.find { block => 
       puzzle.canPutBlock(block, position) && resTree.canMakeMove(block, false)
   }
-  def selectRotatedBlock(position: Position) = 
+  private def selectRotatedBlock(position: Position) = 
     blocks.find { block => 
       puzzle.canPutBlock(block.rotated, position) && 
       resTree.canMakeMove(block, true) &&
       block.shouldTryToRotate
-  }
+  }  
+  def selectBlock(position: Position) = 
+    selectNotRotatedBlock(position).map(BlockMove(_, false)).
+    orElse(
+      selectRotatedBlock(position).map(BlockMove(_, true)))
 
-  def rollback() = {
+  private def rollback() = {
     resTree.rollback() match {
       case Some(Move(blockMove, position)) => {
-        puzzle.remove({
-          if (blockMove.rotated) blockMove.block.rotated else blockMove.block
-          },
+        puzzle.remove(blockMove.inCurrentPosition,
           position
         )
         blocks.add(blockMove.block)
-        //println("Rollback block " + block + " from position " + position)
-        //resTree.print()
         true
       }
-      case None => {
-        //println("Cannot rollback from position")
-        //resTree.print()
-        false
-      }
+      case None => false
     }
   }
-  override def fill(position: Position) = {
-    if (blocks.isEmpty) {
-      //println("failure: no more blocks")
-      rollback()
-    } else {
-      selectBlock(position) match {
-        case None => {
-          selectRotatedBlock(position) match {
-            case None => rollback()
-            case Some(block) => {
-              puzzle.put(block.rotated , position)
-              //println("block " + block + " at position " + position)
-              blocks.remove(block)
-              resTree.makeMove(BlockMove(block, true), position)
-              true              
-            }
-          }
-        }
-        case Some(block) => {
-          puzzle.put(block, position)
-          //println("block " + block + " at position " + position)
-          blocks.remove(block)
-          resTree.makeMove(BlockMove(block, false), position)
-          true
-        }
-      }
-    }
+
+  def onFailure() = rollback()
+  def onBlockFound(blockMove: BlockMove, position: Position) = {
+    resTree.makeMove(blockMove, position)
+    true
   }
-  override def resolve() {
-    var continue = true
-    while (continue) {
-      puzzle.getNextEmptyPosition match {
-        case None => {
-          if (puzzle.done) {
-            println(":) Success: ")
-            resTree.print()
-            continue = false
-          }
-          else rollback()
-        }
-        case Some(position) => {
-          if (!fill(position)) {
-            resTree.print()
-            continue = false
-          }
-        }
-      }
-    }
+  def onBlockNotFound(position: Position) = rollback()
+  def onResolved() = {
+    resTree.print()
+    if (findAll) rollback() else false
   }
 }

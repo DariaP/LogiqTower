@@ -79,5 +79,5 @@ object PuzzleTest extends App {
         List(false, false, true)),
         "green 3 levels 2+2+1"))
 
-  new BruteForceResolver(puzzle, blocks).resolve
+  new BruteForceResolver(puzzle, blocks, false).resolve
 }
