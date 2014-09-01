@@ -106,3 +106,10 @@ class BruteForceResolver(
     }
   }
 }
+
+object Test extends App {
+  new BruteForceResolver(
+      TestLogiqTower.puzzle, 
+      TestLogiqTower.blocks, 
+      true).resolve
+}

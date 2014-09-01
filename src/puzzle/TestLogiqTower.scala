@@ -1,6 +1,6 @@
 package puzzle
 
-object PuzzleTest extends App {
+object TestLogiqTower {
   val puzzle = new Puzzle(5, 12)
   val blocks = new scala.collection.mutable.HashSet[Block]
   
@@ -78,6 +78,4 @@ object PuzzleTest extends App {
         List(false, true, true),
         List(false, false, true)),
         "green 3 levels 2+2+1"))
-
-  new BruteForceResolver(puzzle, blocks, false).resolve
 }
