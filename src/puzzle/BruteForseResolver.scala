@@ -36,8 +36,7 @@ class ResTree {
       if (moves.nonEmpty) moves.last.failedNexts.add(failedMove.blockMove)
       else failedFirsts.add(failedMove.blockMove)
       Some(failedMove)
-    }
-    else None
+    } else None
   }
   
   def print() {
@@ -52,6 +51,7 @@ class BruteForceResolver(
     override val puzzle: Puzzle, 
     override val blocks: Set[Block],
     val findAll: Boolean = true) extends Resolver(puzzle, blocks){
+  var resNum = 0
   val resTree = new ResTree()
 
   private def selectFirstBlock = blocks.find { block => 
@@ -97,7 +97,12 @@ class BruteForceResolver(
   }
   def onBlockNotFound(position: Position) = rollback()
   def onResolved() = {
-    resTree.print()
-    if (findAll) rollback() else false
+    resNum += 1
+    println(resNum)
+    if (findAll) rollback() 
+    else {
+      resTree.print()
+      false
+    }
   }
 }
