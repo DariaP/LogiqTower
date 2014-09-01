@@ -28,6 +28,7 @@ class ResTree {
     moves.append(new Move(blockMove, position))
   }
 
+  def nowIsFirstMove = moves.isEmpty
   def canRollback = moves.nonEmpty
   def rollback(): Option[Move] = {
     if (moves.nonEmpty) {
@@ -53,6 +54,9 @@ class BruteForceResolver(
     val findAll: Boolean = true) extends Resolver(puzzle, blocks){
   val resTree = new ResTree()
 
+  private def selectFirstBlock = blocks.find { block => 
+      resTree.canMakeMove(block, false) && block.hasCenter
+  }
   private def selectNotRotatedBlock(position: Position) = 
     blocks.find { block => 
       puzzle.canPutBlock(block, position) && resTree.canMakeMove(block, false)
@@ -63,10 +67,12 @@ class BruteForceResolver(
       resTree.canMakeMove(block, true) &&
       block.shouldTryToRotate
   }  
-  def selectBlock(position: Position) = 
-    selectNotRotatedBlock(position).map(BlockMove(_, false)).
-    orElse(
-      selectRotatedBlock(position).map(BlockMove(_, true)))
+  def selectBlock(position: Position) =
+    if (resTree.nowIsFirstMove) selectFirstBlock.map(BlockMove(_, rotated = false))
+    else
+      selectNotRotatedBlock(position).map(BlockMove(_, rotated = false)).
+      orElse(
+      selectRotatedBlock(position).map(BlockMove(_, rotated = true)))
 
   private def rollback() = {
     resTree.rollback() match {
@@ -77,7 +83,10 @@ class BruteForceResolver(
         blocks.add(blockMove.block)
         true
       }
-      case None => false
+      case None => {
+        resTree.print()
+        false
+      }
     }
   }
 
